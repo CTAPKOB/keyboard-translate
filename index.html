@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ru-Pass transformer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-white p-4">
+    <h1 class="text-2xl font-bold mb-6">Keyboard Layout Transform & Hash</h1>
+
+    <div class="space-y-4">
+      <!-- Input -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2"
+          >Input Text:</label
+        >
+        <input
+          type="text"
+          id="inputText"
+          class="w-full p-2 border rounded bg-gray-50"
+          placeholder="Enter text"
+        />
+      </div>
+
+      <!-- Transformed Text -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2"
+          >Transformed Text:</label
+        >
+        <div class="flex space-x-2">
+          <input
+            type="text"
+            id="transformedText"
+            readonly
+            class="w-full p-2 border rounded bg-gray-50"
+          />
+          <button
+            onclick="copyTransformed()"
+            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Copy
+          </button>
+        </div>
+      </div>
+
+      <!-- Hash Output -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2"
+          >SHA-256 Hash:</label
+        >
+        <div class="flex space-x-2">
+          <input
+            type="text"
+            id="hashOutput"
+            readonly
+            class="w-full p-2 border rounded bg-gray-50"
+          />
+          <button
+            onclick="addToSaved()"
+            class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+
+      <!-- Saved Hashes -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2"
+          >Saved Hashes:</label
+        >
+        <div id="savedHashes" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <script>
+      // Keyboard layout mapping
+      const layoutMap = {
+        '!': '~',
+        '"': '!',
+        '№': '@',
+        '%': '#',
+        ':': '$',
+        ',': '%',
+        '.': '^',
+        ';': '&',
+        й: 'q',
+        ц: 'w',
+        у: 'e',
+        к: 'r',
+        е: 't',
+        н: 'y',
+        г: 'u',
+        ш: 'i',
+        щ: 'o',
+        з: 'p',
+        х: '[',
+        ъ: ']',
+        ё: '\\',
+        ф: 'a',
+        ы: 's',
+        в: 'd',
+        а: 'f',
+        п: 'g',
+        р: 'h',
+        о: 'j',
+        л: 'k',
+        д: 'l',
+        ж: ';',
+        э: "'",
+        я: 'z',
+        ч: 'x',
+        с: 'c',
+        м: 'v',
+        и: 'b',
+        т: 'n',
+        ь: 'm',
+        б: ',',
+        ю: '.',
+        Й: 'Q',
+        Ц: 'W',
+        У: 'E',
+        К: 'R',
+        Е: 'T',
+        Н: 'Y',
+        Г: 'U',
+        Ш: 'I',
+        Щ: 'O',
+        З: 'P',
+        Х: '{',
+        Ъ: '}',
+        Ё: '|',
+        Ф: 'A',
+        Ы: 'S',
+        В: 'D',
+        А: 'F',
+        П: 'G',
+        Р: 'H',
+        О: 'J',
+        Л: 'K',
+        Д: 'L',
+        Ж: ':',
+        Э: '"',
+        Я: 'Z',
+        Ч: 'X',
+        С: 'C',
+        М: 'V',
+        И: 'B',
+        Т: 'N',
+        Ь: 'M',
+        Б: '<',
+        Ю: '>',
+      };
+
+      // Load saved hashes from localStorage
+      let savedHashes = JSON.parse(localStorage.getItem('savedHashes')) || [];
+
+      // Convert string to hex
+      function bufferToHex(buffer) {
+        return Array.from(new Uint8Array(buffer))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+      }
+
+      // Calculate SHA-256 hash using native Web Crypto API
+      async function calculateHash(text) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(text);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        return bufferToHex(hashBuffer);
+      }
+
+      // Update UI elements
+      async function updateUI() {
+        const input = document.getElementById('inputText').value;
+        const transformed = transformText(input);
+        document.getElementById('transformedText').value = transformed;
+
+        const hash = await calculateHash(transformed);
+        const hashOutput = document.getElementById('hashOutput');
+        hashOutput.value = hash;
+
+        // Change color based on if hash is saved
+        hashOutput.style.backgroundColor = savedHashes.includes(hash)
+          ? '#d1fae5'
+          : '#fff';
+
+        // Update saved hashes display
+        const savedHashesDiv = document.getElementById('savedHashes');
+        savedHashesDiv.innerHTML = savedHashes
+          .map(
+            (hash) => `
+                <div class="flex gap-2 justify-between items-center p-2 rounded">
+                  <span class="font-mono text-sm text-ellipsis overflow-hidden"
+                    >${hash}</span
+                  >
+                  <button
+                    onclick="removeHash('${hash}')"
+                    class="text-red-500 hover:text-red-700 p-4"
+                  >
+                    Remove
+                  </button>
+                </div>
+
+            `
+          )
+          .join('');
+      }
+
+      // Transform text according to layout map
+      function transformText(text) {
+        return text
+          .split('')
+          .map((char) => layoutMap[char] || char)
+          .join('');
+      }
+
+      // Copy transformed text
+      function copyTransformed() {
+        const transformedText = document.getElementById('transformedText');
+        transformedText.select();
+        document.execCommand('copy');
+      }
+
+      // Add hash to saved list
+      async function addToSaved() {
+        const hash = document.getElementById('hashOutput').value;
+        if (!savedHashes.includes(hash)) {
+          savedHashes.push(hash);
+          localStorage.setItem('savedHashes', JSON.stringify(savedHashes));
+          await updateUI();
+        }
+      }
+
+      // Remove hash from saved list
+      async function removeHash(hash) {
+        savedHashes = savedHashes.filter((h) => h !== hash);
+        localStorage.setItem('savedHashes', JSON.stringify(savedHashes));
+        await updateUI();
+      }
+
+      // Initialize
+      document.getElementById('inputText').addEventListener('input', updateUI);
+      updateUI();
+    </script>
+  </body>
+</html>
