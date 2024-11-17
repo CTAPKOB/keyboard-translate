@@ -75,84 +75,6 @@
     </div>
 
     <script>
-      // Keyboard layout mapping
-      const layoutMap = {
-        '!': '~',
-        '"': '!',
-        '№': '@',
-        '%': '#',
-        ':': '$',
-        ',': '%',
-        '.': '^',
-        ';': '&',
-        й: 'q',
-        ц: 'w',
-        у: 'e',
-        к: 'r',
-        е: 't',
-        н: 'y',
-        г: 'u',
-        ш: 'i',
-        щ: 'o',
-        з: 'p',
-        х: '[',
-        ъ: ']',
-        ё: '\\',
-        ф: 'a',
-        ы: 's',
-        в: 'd',
-        а: 'f',
-        п: 'g',
-        р: 'h',
-        о: 'j',
-        л: 'k',
-        д: 'l',
-        ж: ';',
-        э: "'",
-        я: 'z',
-        ч: 'x',
-        с: 'c',
-        м: 'v',
-        и: 'b',
-        т: 'n',
-        ь: 'm',
-        б: ',',
-        ю: '.',
-        Й: 'Q',
-        Ц: 'W',
-        У: 'E',
-        К: 'R',
-        Е: 'T',
-        Н: 'Y',
-        Г: 'U',
-        Ш: 'I',
-        Щ: 'O',
-        З: 'P',
-        Х: '{',
-        Ъ: '}',
-        Ё: '|',
-        Ф: 'A',
-        Ы: 'S',
-        В: 'D',
-        А: 'F',
-        П: 'G',
-        Р: 'H',
-        О: 'J',
-        Л: 'K',
-        Д: 'L',
-        Ж: ':',
-        Э: '"',
-        Я: 'Z',
-        Ч: 'X',
-        С: 'C',
-        М: 'V',
-        И: 'B',
-        Т: 'N',
-        Ь: 'M',
-        Б: '<',
-        Ю: '>',
-      };
-
       // Load saved hashes from localStorage
       let savedHashes = JSON.parse(localStorage.getItem('savedHashes')) || [];
 
@@ -209,11 +131,17 @@
       }
 
       // Transform text according to layout map
-      function transformText(text) {
-        return text
-          .split('')
-          .map((char) => layoutMap[char] || char)
-          .join('');
+      function transformText(input) {
+        // Source and destination character sets from your sed command
+        const sourceChars = `[!"№%:,.;йцукенгшщзхъёфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪЁФЫВАПРОЛДЖЭЯЧСМИТЬБЮ`;
+        const destChars = `~!@#$%^&*qwertyuiop[]\\asdfghjkl;\'zxcvbnm,.QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>`;
+
+        let result = '';
+        for (const char of input) {
+          const index = sourceChars.indexOf(char);
+          result += index !== -1 ? destChars[index] : char;
+        }
+        return result;
       }
 
       // Copy transformed text
